@@ -1,0 +1,6 @@
+<h4>Internal Server error- refreshing the page will disappear the error</h4>
+<ng-container *ngIf="error">
+    <h5 class="text-danger">Error: {{error.message}}</h5>
+    <p class="font-weight-bold">Please copy the details below and send email to admin @ritesh.sharma.cse@gmail.com</p>
+    <code class="mt-5" style="background-color:whitesmoke">{{error.details}}</code>
+</ng-container>
