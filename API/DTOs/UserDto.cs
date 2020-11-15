@@ -1,4 +1,4 @@
-namespace API.DT0s
+namespace API.DTOs
 {
     public class UserDto
     {
