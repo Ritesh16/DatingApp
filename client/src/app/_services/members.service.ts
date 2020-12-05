@@ -29,16 +29,20 @@ export class MembersService {
 
   getMember(userName: string) {
     const member = this.members.find(x => x.userName === userName);
-    if (member !== undefined) return of(member); 
+    if (member !== undefined) return of(member);
     return this.http.get<Member>(this.baseUrl + 'users/' + userName);
   }
 
   updateMember(member: Member) {
     return this.http.put(this.baseUrl + 'users', member).pipe(
-      map(()=> {
+      map(() => {
         const index = this.members.indexOf(member);
         this.members[index] = member;
       })
     );
+  }
+
+  setMainPhoto(photoId: number) {
+    return this.http.put(this.baseUrl + 'users/set-main-photo/' + photoId, {});
   }
 }

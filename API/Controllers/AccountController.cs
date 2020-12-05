@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -24,7 +25,7 @@ namespace API.Controllers
         [HttpPost("register")]
         public async Task<ActionResult<AppUser>> Register(RegisterDto registerDto)
         {
-            if(await UserExists(registerDto.UserName)) return BadRequest("User name is taken.");
+            if (await UserExists(registerDto.UserName)) return BadRequest("User name is taken.");
 
             using var hmac = new HMACSHA512();
 
@@ -45,27 +46,29 @@ namespace API.Controllers
         public async Task<ActionResult<UserDto>> Login(LoginDto loginDto)
         {
             var user = await context.Users
-                .SingleOrDefaultAsync(x=> x.UserName==loginDto.UserName);
+                .Include("Photos")
+                .SingleOrDefaultAsync(x => x.UserName == loginDto.UserName);
 
             if (user == null) return Unauthorized("Username is invalid");
 
             var hmac = new HMACSHA512(user.PasswordSalt);
             var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(loginDto.Password));
 
-            for(int i = 0; i < computedHash.Length; i++)
+            for (int i = 0; i < computedHash.Length; i++)
             {
-                if(computedHash[i] != user.PasswordHash[i]) return Unauthorized("Invalid Password.");
+                if (computedHash[i] != user.PasswordHash[i]) return Unauthorized("Invalid Password.");
             }
 
-            return new UserDto 
+            return new UserDto
             {
                 UserName = user.UserName,
-                Token = tokenService.CreateToken(user)
+                Token = tokenService.CreateToken(user),
+                PhotoUrl = user.Photos.FirstOrDefault(x => x.IsMain)?.Url
             };
-        } 
+        }
         private async Task<bool> UserExists(string userName)
         {
-            return await context.Users.AnyAsync(x=>x.UserName == userName.ToLower());
-        } 
+            return await context.Users.AnyAsync(x => x.UserName == userName.ToLower());
+        }
     }
 }
