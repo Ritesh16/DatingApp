@@ -1,0 +1,16 @@
+<div class="form-group">
+    <input 
+    [class.is-invalid]="ngControl.touched && ngControl.invalid"
+    type="text" 
+    class="form-control" 
+    [formControl]="ngControl.control" 
+    placeholder={{label}}
+    bsDatepicker
+    [bsConfig]='bsConfig'
+    [maxDate] = 'maxDate'
+    />
+    <div *ngIf="ngControl.control.errors?.required" class="invalid-feedback">{{label}} is required</div>
+    <div *ngIf="ngControl.control.errors?.isMatching" class="invalid-feedback">
+        Passwords do not match
+    </div>
+</div>
