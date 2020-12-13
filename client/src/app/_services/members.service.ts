@@ -7,7 +7,9 @@ import { environment } from 'src/environments/environment';
 import { Member } from '../_models/member';
 import { PaginatedResult } from '../_models/pagination';
 import { UserParams } from '../_models/userParams';
-
+import { take } from 'rxjs/operators';
+import { AccountService } from './account.service';
+import { User } from '../_models/user';
 
 
 @Injectable({
@@ -16,11 +18,36 @@ import { UserParams } from '../_models/userParams';
 export class MembersService {
   baseUrl = environment.apiUrl;
   members: Member[] = [];
- 
+  userParams: UserParams;
+  user: User;
+  memberCache = new Map();
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient, private accountService: AccountService) {
+    this.accountService.currentUser$.pipe(take(1)).subscribe(user => {
+      this.user = user;
+      this.userParams = new UserParams(user);
+    });
+  }
+
+  getUserParams() {
+    return this.userParams;
+  }
+
+  setUserParams(params: UserParams) {
+    this.userParams = params;
+  }
+
+  resetUserParams(){
+    this.userParams =new UserParams(this.user);
+    return this.userParams;
+  }
 
   getMembers(userParams: UserParams) {
+    var response = this.memberCache.get(Object.values(userParams).join('-'));
+    if(response) {
+      return of(response);
+    }
+
     let params = this.getPaginationHeaders(userParams.pageNumber, userParams.pageSize);
 
     params = params.append('minAge', userParams.minAge.toString());
@@ -30,11 +57,21 @@ export class MembersService {
 
     var url = this.baseUrl + 'users';
     return this.getPaginatedResult<Member[]>(url, params)
+          .pipe(map(response => {
+            this.memberCache.set(Object.values(userParams).join('-'), response);
+             return response;
+          }));
   }
 
   getMember(userName: string) {
-    const member = this.members.find(x => x.userName === userName);
-    if (member !== undefined) return of(member);
+   const member = [...this.memberCache.values()]
+        .reduce((arr, elem) => arr.concat(elem.result), [])
+        .find((member: Member) => member.userName == userName);
+
+    if(member) {
+      return of(member);
+    }
+
     return this.http.get<Member>(this.baseUrl + 'users/' + userName);
   }
 
