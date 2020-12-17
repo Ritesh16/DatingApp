@@ -37,14 +37,14 @@ export class MembersService {
     this.userParams = params;
   }
 
-  resetUserParams(){
-    this.userParams =new UserParams(this.user);
+  resetUserParams() {
+    this.userParams = new UserParams(this.user);
     return this.userParams;
   }
 
   getMembers(userParams: UserParams) {
     var response = this.memberCache.get(Object.values(userParams).join('-'));
-    if(response) {
+    if (response) {
       return of(response);
     }
 
@@ -57,18 +57,18 @@ export class MembersService {
 
     var url = this.baseUrl + 'users';
     return this.getPaginatedResult<Member[]>(url, params)
-          .pipe(map(response => {
-            this.memberCache.set(Object.values(userParams).join('-'), response);
-             return response;
-          }));
+      .pipe(map(response => {
+        this.memberCache.set(Object.values(userParams).join('-'), response);
+        return response;
+      }));
   }
 
   getMember(userName: string) {
-   const member = [...this.memberCache.values()]
-        .reduce((arr, elem) => arr.concat(elem.result), [])
-        .find((member: Member) => member.userName == userName);
+    const member = [...this.memberCache.values()]
+      .reduce((arr, elem) => arr.concat(elem.result), [])
+      .find((member: Member) => member.userName == userName);
 
-    if(member) {
+    if (member) {
       return of(member);
     }
 
@@ -90,6 +90,17 @@ export class MembersService {
 
   deletePhoto(photoId: number) {
     return this.http.delete(this.baseUrl + 'users/delete-photo/' + photoId);
+  }
+
+  addLike(userName: string) {
+    return this.http.post(this.baseUrl + 'likes/' + userName, {});
+  }
+
+  getLikes(predicate: string, pageNumber: number, pageSize: number) {
+    let params = this.getPaginationHeaders(pageNumber, pageSize);
+    params = params.append('predicate', predicate);
+
+    return this.getPaginatedResult<Partial<Member[]>>(this.baseUrl + 'likes' , params);
   }
 
   private getPaginatedResult<T>(url, params: HttpParams) {
