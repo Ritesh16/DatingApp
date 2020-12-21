@@ -20,7 +20,7 @@ export class ListsComponent implements OnInit {
   ngOnInit(): void {
     this.loadLikes();
   }
-
+  
   loadLikes() {
     this.memberService.getLikes(this.predicate, this.pageNumber, this.pageSize).subscribe(response => {
       this.members = response.result;
