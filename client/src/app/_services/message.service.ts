@@ -23,4 +23,11 @@ export class MessageService {
     return this.http.get<Message[]>(this.baseUrl + 'messages/thread/' + userName);
   }
 
+  sendMessage(userName: string, content: string) {
+    return this.http.post<Message>(this.baseUrl + 'messages', {recipientUserName: userName, content});
+  }
+
+  deleteMessage(id: number) {
+    return this.http.delete(this.baseUrl + 'messages/' + id);
+  }
 }
