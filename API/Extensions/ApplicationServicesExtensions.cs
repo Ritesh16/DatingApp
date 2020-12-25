@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using API.Helpers;
 using Microsoft.AspNetCore.Http;
+using API.SignalR;
 
 namespace API.Extensions
 {
@@ -14,6 +15,7 @@ namespace API.Extensions
     {
         public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration) 
         {
+            services.AddSingleton<PresenceTracker>();
             services.Configure<CloudinarySettings>(configuration.GetSection("CloudinarySettings"));
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<LogUserActivity>();
