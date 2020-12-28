@@ -68,14 +68,16 @@ namespace API.Data
             return await PagedList<MemberDto>.CreateAsync(query.ProjectTo<MemberDto>(
                 mapper.ConfigurationProvider).AsNoTracking(), userParams.PageNumber, userParams.PageSize);
         }
-        public async Task<bool> SaveAllAsync()
-        {
-            return await context.SaveChangesAsync() > 0;
-        }
-
         public void Update(AppUser user)
         {
             context.Entry(user).State = EntityState.Modified;
+        }
+
+        public async Task<string> GetUserGender(string userName)
+        {
+            return await context.Users
+                        .Where(x => x.UserName == userName)
+                        .Select(x => x.Gender).FirstOrDefaultAsync();
         }
     }
 }
