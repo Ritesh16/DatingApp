@@ -36,15 +36,17 @@ namespace API.SignalR
             var otherUser = httpContext.Request.Query["user"].ToString();
             var groupName = GetGroupName(caller, otherUser);
             await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
-            await AddToGroup(groupName);
+            var group = await AddToGroup(groupName);
+            await Clients.Group(groupName).SendAsync("UpdatedGroup", group);
 
             var messages = await messageRepository.GetMessagesThread(caller, otherUser);
-            await Clients.Group(groupName).SendAsync("ReceiverMessageThread", messages);
+            await Clients.Caller.SendAsync("ReceiverMessageThread", messages);
         }
 
         public override async Task OnDisconnectedAsync(Exception exception)
         {
-            await RemoveFromMessageGroup(Context.ConnectionId);
+            var group = await RemoveFromMessageGroup();
+            await Clients.Group(group.Name).SendAsync("UpdatedGroup", group);
             await base.OnDisconnectedAsync(exception);
         }
 
@@ -79,10 +81,10 @@ namespace API.SignalR
             else
             {
                 var connections = await presenceTracker.GetConnectionsForUser(recipient.UserName);
-                if(connections!=null)
+                if (connections != null)
                 {
-                    await presenceHub.Clients.Clients(connections).SendAsync("NewMessageReceived", 
-                     new {userName = sender.UserName, knownAs = sender.KnownAs});
+                    await presenceHub.Clients.Clients(connections).SendAsync("NewMessageReceived",
+                     new { userName = sender.UserName, knownAs = sender.KnownAs });
                 }
             }
 
@@ -100,7 +102,7 @@ namespace API.SignalR
             return stringCompare ? $"{caller}-{other}" : $"{other}-{caller}";
         }
 
-        private async Task<bool> AddToGroup(string groupName)
+        private async Task<Group> AddToGroup(string groupName)
         {
             var group = await messageRepository.GetMessageGroup(groupName);
             var connection = new Connection(Context.ConnectionId, Context.User.GetUserName());
@@ -112,14 +114,19 @@ namespace API.SignalR
             }
 
             group.Connections.Add(connection);
-            return await messageRepository.SaveAllAsync();
+            if (await messageRepository.SaveAllAsync()) return group;
+
+            throw new HubException("Failed to join group.");
         }
 
-        private async Task RemoveFromMessageGroup(string connectionId)
+        private async Task<Group> RemoveFromMessageGroup()
         {
-            var connection = await messageRepository.GetConnection(connectionId);
+            var group = await messageRepository.GetGroupForConnection(Context.ConnectionId);
+            var connection = group.Connections.FirstOrDefault(x => x.ConnectionId == Context.ConnectionId);
             messageRepository.RemoveConnection(connection);
-            await messageRepository.SaveAllAsync();
+            if (await messageRepository.SaveAllAsync()) return group;
+
+            throw new HubException("Failed to remove from group");
         }
     }
 }

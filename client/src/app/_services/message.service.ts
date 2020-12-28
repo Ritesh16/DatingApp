@@ -4,6 +4,7 @@ import { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
 import { BehaviorSubject } from 'rxjs';
 import { take } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
+import { Group } from '../_models/group';
 import { Message } from '../_models/message';
 import { User } from '../_models/user';
 import { getPaginatedResult, getPaginationHeaders } from './paginationHelper';
@@ -21,7 +22,7 @@ export class MessageService {
   constructor(private http: HttpClient) { }
 
   createHubConnection(user: User, otherUser: string) {
-    
+
     this.hubConnection = new HubConnectionBuilder()
       .withUrl(this.hubUrl + 'message?user=' + otherUser, {
         accessTokenFactory: () => user.token
@@ -39,6 +40,20 @@ export class MessageService {
       this.messageThread$.pipe(take(1)).subscribe(messages => {
         this.messageThreadSource.next([...messages, message]);
       });
+    });
+
+    this.hubConnection.on('UpdatedGroup', (group: Group) => {
+      if (group.connections.some(x => x.userName == otherUser)) {
+        this.messageThread$.pipe(take(1)).subscribe(messages => {
+          messages.forEach(message => {
+            if(!message.dateRead){
+              message.dateRead = new Date(Date.now());
+            }
+          })
+
+          this.messageThreadSource.next([...messages]);
+        });
+      }
 
     });
   }
@@ -60,7 +75,7 @@ export class MessageService {
     return this.http.get<Message[]>(this.baseUrl + 'messages/thread/' + userName);
   }
 
-   async sendMessage(userName: string, content: string) {
+  async sendMessage(userName: string, content: string) {
     return this.hubConnection.invoke('SendMessage', { recipientUserName: userName, content })
       .catch(error => console.log(error));
   }
