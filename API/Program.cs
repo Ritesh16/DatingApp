@@ -32,8 +32,9 @@ namespace API
             }
             catch(Exception ex)
             {
-                var logger = services.GetRequiredService<ILogger>();
-                logger.LogError(ex, "Some error has occurred during migrations.");
+                throw ex;
+                //var logger = services.GetRequiredService<ILogger>();
+                //logger.LogError(ex, "Some error has occurred during migrations.");
             }
 
             await host.RunAsync();
